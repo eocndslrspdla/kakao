@@ -261,7 +261,6 @@ process.on('unhandledRejection', (reason, promise) => {
   });
 });
 
-// Graceful shutdown
 process.on('SIGINT', () => {
   console.log('\n서버를 종료합니다...');
   server.close(() => {
