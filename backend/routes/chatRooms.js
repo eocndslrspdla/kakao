@@ -175,12 +175,23 @@ router.post('/create-or-find', authenticateToken, (req, res) => {
         }
         
         if (existingRoom.length > 0) {
-            // 기존 채팅방이 있으면 반환
-            return res.json({
-                success: true,
-                room: existingRoom[0],
-                isNew: false
+            // 기존 채팅방이 있으면 현재 사용자의 숨김 상태 해제
+            const roomId = existingRoom[0].id;
+            chatRoomModel.showChatRoomForUser(roomId, current_user_id, (err) => {
+                if (err) {
+                    console.error('채팅방 숨김 해제 실패:', err);
+                } else {
+                    console.log(`사용자 ${current_user_id}의 채팅방 ${roomId} 숨김 해제됨`);
+                }
+                
+                // 숨김 해제 성공 여부와 관계없이 채팅방 정보 반환
+                return res.json({
+                    success: true,
+                    room: existingRoom[0],
+                    isNew: false
+                });
             });
+            return; // 여기서 함수 종료
         }
         
         // 새 채팅방 생성
@@ -280,7 +291,5 @@ router.post('/:room_id/leave', authenticateToken, (req, res) => {
         });
     });
 });
-
-
 
 module.exports = router;
