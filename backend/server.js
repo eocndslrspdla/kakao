@@ -88,6 +88,17 @@ io.on('connection', (socket) => {
     
     // 채팅방 입장 시 모든 메시지를 읽음 처리
     const messageModel = require('./models/messages');
+    const chatRoomsModel = require('./models/chatRooms');
+    
+    // 채팅방 입장 시 숨김 해제
+    chatRoomsModel.showChatRoomForUser(roomId, socket.userId, (err) => {
+      if (err) {
+        console.error('채팅방 숨김 해제 실패:', err);
+      } else {
+        console.log(`사용자 ${socket.userId}의 채팅방 ${roomId} 숨김 해제됨`);
+      }
+    });
+    
     messageModel.markAllMessagesAsRead(roomId, socket.userId, (err) => {
       if (err) {
         console.error('메시지 읽음 처리 오류:', err);
@@ -127,6 +138,7 @@ io.on('connection', (socket) => {
   socket.on('send_message', (data) => {
     const { roomId, content, message_type = 'text' } = data;
     const messageModel = require('./models/messages');
+    const chatRoomsModel = require('./models/chatRooms');
     
     console.log(`메시지 전송: ${socket.username} -> 방 ${roomId}`);
     
@@ -139,6 +151,15 @@ io.on('connection', (socket) => {
       }
       
       const messageId = result.insertId;
+      
+      // 메시지 전송 시 숨겨진 멤버들 다시 보이게 하기
+      chatRoomsModel.unhideRoomForAllMembers(roomId, socket.userId, (err) => {
+        if (err) {
+          console.error('채팅방 숨김 해제 실패:', err);
+        } else {
+          console.log(`채팅방 ${roomId}의 숨겨진 멤버들이 다시 보이게 되었습니다.`);
+        }
+      });
       
       // 저장된 메시지 정보 조회 (읽지 않은 사용자 수 포함)
       messageModel.getMessagesByRoomIdWithUnreadCount(roomId, socket.userId, 1, 0, (err, messages) => {
