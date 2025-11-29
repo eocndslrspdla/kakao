@@ -36,7 +36,6 @@ exports.getUserChatRooms = (user_id, callback) => {
         SELECT content 
         FROM messages 
         WHERE room_id = cr.id 
-        AND (crm.left_at IS NULL OR created_at <= crm.left_at)
         ORDER BY created_at DESC 
         LIMIT 1
       ) as last_message,
@@ -44,7 +43,6 @@ exports.getUserChatRooms = (user_id, callback) => {
         SELECT created_at 
         FROM messages 
         WHERE room_id = cr.id 
-        AND (crm.left_at IS NULL OR created_at <= crm.left_at)
         ORDER BY created_at DESC 
         LIMIT 1
       ) as last_message_time,
@@ -64,7 +62,7 @@ exports.getUserChatRooms = (user_id, callback) => {
     JOIN chat_rooms cr ON crm.room_id = cr.id
     WHERE crm.user_id = ? AND crm.hidden = FALSE
     ORDER BY COALESCE(
-      (SELECT created_at FROM messages WHERE room_id = cr.id AND (crm.left_at IS NULL OR created_at <= crm.left_at) ORDER BY created_at DESC LIMIT 1),
+      (SELECT created_at FROM messages WHERE room_id = cr.id ORDER BY created_at DESC LIMIT 1),
       cr.created_at
     ) DESC
   `;
@@ -186,6 +184,16 @@ exports.showChatRoomForUser = (room_id, user_id, callback) => {
     WHERE room_id = ? AND user_id = ?
   `;
   connection.query(query, [room_id, user_id], callback);
+};
+
+// 채팅방의 숨겨진 멤버들 다시 보이게 하기 (메시지 전송 시 호출)
+exports.unhideRoomForAllMembers = (room_id, sender_id, callback) => {
+  const query = `
+    UPDATE chat_room_members 
+    SET hidden = FALSE, left_at = NULL 
+    WHERE room_id = ? AND user_id != ? AND hidden = TRUE
+  `;
+  connection.query(query, [room_id, sender_id], callback);
 };
 
 // 사용자가 채팅방에서 나간 시간 확인
